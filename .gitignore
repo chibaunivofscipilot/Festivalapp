@@ -18,3 +18,4 @@ Thumbs.db
 # npmのデバッグ出力
 npm-debug.log*
 
+Datebase.json

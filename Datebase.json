@@ -2,8 +2,8 @@
   {
     "name": "商品A",
     "price": 100,
-    "stock": 4,
-    "sold": 6
+    "stock": 13,
+    "sold": 10
   },
   {
     "name": "商品B",

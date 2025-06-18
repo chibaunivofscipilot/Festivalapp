@@ -6,6 +6,18 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
+// writeLog関数定義（ログファイルに操作記録を書き込む）
+function writeLog(user, message) {
+  const logPath = path.join(__dirname, 'operation.log');
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] [ユーザー: ${user.username || user}] ${message}\n`;
+  fs.appendFile(logPath, logMessage, (err) => {
+    if (err) {
+      console.error('ログ書き込みエラー:', err);
+    }
+  });
+}
+
 // ミドルウェア
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
@@ -17,6 +29,29 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static('public'));
 
+// 認証チェックミドルウェア
+function requireLogin(req, res, next) {
+  if (req.session.user) {
+    next();
+  } else {
+    res.redirect('/login');
+  }
+}
+
+// データベース読み込み関数
+let items = [];
+function loadData() {
+  const data = fs.readFileSync('Datebase.json', 'utf8');
+  items = JSON.parse(data);
+}
+// データベース書き出し関数
+function saveData() {
+  fs.writeFileSync('Datebase.json', JSON.stringify(items, null, 2));
+}
+// 初回ロード
+loadData();
+
+// --- ルーティング ---
 // ログインページ
 app.get('/login', (req, res) => {
   res.render('login', { error: null });
@@ -27,9 +62,10 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
   const user = users.find(u => u.username === username && u.password === password);
-  
+
   if (user) {
     req.session.user = user;
+    writeLog(user, 'ログインしました');
     res.redirect('/');
   } else {
     res.render('login', { error: 'ユーザー名またはパスワードが違います' });
@@ -38,83 +74,88 @@ app.post('/login', (req, res) => {
 
 // ログアウト
 app.get('/logout', (req, res) => {
+  if(req.session.user) {
+    writeLog(req.session.user, 'ログアウトしました');
+  }
   req.session.destroy(() => {
     res.redirect('/login');
   });
 });
 
-// 認証チェックミドルウェア
-function requireLogin(req, res, next) {
-  if (req.session.user) {
-    next();
-  } else {
-    res.redirect('/login');
-  }
-}
-
-//データベース読み込み関数
-let items = [];
-
-function loadData() {
-  const data = fs.readFileSync('Datebase.json', 'utf8');
-  items = JSON.parse(data);
-}
-//データベースの書き出し関数
-function saveData() {
-  fs.writeFileSync('Datebase.json', JSON.stringify(items, null, 2));
-}
-
-//データベースの読み込み
-loadData();
-
-
-// ミドルウェア設定
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({ secret: 'secret', resave: false, saveUninitialized: true }));
-
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-
-// ログイン後にアクセスできるページ例
+// ホームページ（ログイン必須）
 app.get('/', requireLogin, (req, res) => {
   res.render('Home', { user: req.session.user });
 });
 
-
-// ログイン後にアクセスできるページ例
-app.get('/inventory', requireLogin, (req, res) => {
-  res.render('inventory', { user: req.session.user });
-});
-
-//売り上げ管理ページ
+// 売上管理ページ（ログイン必須）
 app.get('/sales-home', requireLogin, (req, res) => {
   res.render('sales-home', { items, user: req.session.user, title: "売上管理" });
 });
 
-//sell時の動作
-app.post('/sell', (req, res) => {
+// 売る処理（ログイン必須、ログも書き込み）
+app.post('/sell', requireLogin, (req, res) => {
   const index = parseInt(req.body.index);
-  if (items[index] && items[index].stock > 0) {
-    items[index].stock -= 1;
-    items[index].sold += 1;
-    saveData(); // ← ここで保存
-  }
-  res.redirect('/sales-home');
-});
-//取り消し動作(警告音を足すべき)
-app.post('/delete-sale', (req, res) => {
-  const index = parseInt(req.body.index);
-  if (items[index] && items[index].sold > 0) {
-    items[index].stock += 1;
-    items[index].sold -= 1;
-    saveData(); // ← 忘れずに保存
+  const user = req.session.user || { username: '不明なユーザー' };
+
+  if (index >= 0 && index < items.length) {
+    if (items[index].stock > 0) {
+      items[index].stock--;
+      items[index].sold++;
+      saveData();
+
+      writeLog(user, `販売: 商品「${items[index].name}」が1つ売れました。残在庫: ${items[index].stock}`);
+    } else {
+      writeLog(user, `販売失敗: 商品「${items[index].name}」の在庫がありません。`);
+    }
   }
   res.redirect('/sales-home');
 });
 
+// 取り消し処理（ログイン必須、ログも書き込み）
+app.post('/delete-sale', requireLogin, (req, res) => {
+  const index = parseInt(req.body.index);
+  const user = req.session.user || { username: '不明なユーザー' };
+
+  if (index >= 0 && index < items.length) {
+    if (items[index].sold > 0) {
+      items[index].stock++;
+      items[index].sold--;
+      saveData();
+
+      writeLog(user, `取り消し: 商品「${items[index].name}」の販売を1つ取り消しました。現在の在庫: ${items[index].stock}`);
+    } else {
+      writeLog(user, `取り消し失敗: 商品「${items[index].name}」の売上がありません。`);
+    }
+  }
+  res.redirect('/sales-home');
+});
+
+// 在庫編集ページ表示
+app.get('/inventory', requireLogin, (req, res) => {
+  res.render('inventory', { items, user: req.session.user });
+});
+
+// 在庫数更新処理（POST）
+app.post('/inventory/update', requireLogin, (req, res) => {
+  const index = parseInt(req.body.index);
+  const newStock = parseInt(req.body.stock);
+  const user = req.session.user || { username: '不明なユーザー' };
+
+  if (!isNaN(index) && !isNaN(newStock) && index >= 0 && index < items.length) {
+    const oldStock = items[index].stock;
+    items[index].stock = newStock;
+    saveData();
+
+    // ログ記録
+    writeLog(user, `在庫編集: 商品「${items[index].name}」の在庫を ${oldStock} → ${newStock} に変更`);
+  } else {
+    writeLog(user, `在庫編集失敗: index=${index}, stock=${newStock}（無効な入力）`);
+  }
+
+  res.redirect('/inventory');
+});
+
 // サーバー起動
 app.listen(PORT, () => {
-console.log(`http://localhost:${PORT} で起動中`);
+  console.log(`http://localhost:${PORT} で起動中`);
 });

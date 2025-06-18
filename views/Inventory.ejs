@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>在庫管理ページ</title>
+</head>
+<body>
+  <h1>在庫管理</h1>
+  <table border="1" cellpadding="5" cellspacing="0">
+    <thead>
+      <tr>
+        <th>商品名</th>
+        <th>現在の在庫</th>
+        <th>在庫数を変更</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% items.forEach((item, index) => { %>
+        <tr>
+          <td><%= item.name %></td>
+          <td><%= item.stock %></td>
+          <td>
+            <form action="/inventory/update" method="POST" style="display:inline;">
+              <input type="hidden" name="index" value="<%= index %>">
+              <input type="number" name="stock" min="0" value="<%= item.stock %>" required>
+              <button type="submit">更新</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <br>
+  <a href="/">メインページへ戻る</a>
+</body>
+</html>
