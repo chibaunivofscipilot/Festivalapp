@@ -1,0 +1,10 @@
+[
+  { "name": "商品A", "price": 100, "stock": 10, "sold": 0 },
+  { "name": "商品B", "price": 200, "stock": 5,  "sold": 0 },
+  { "name": "商品C", "price": 150, "stock": 8,  "sold": 0 },
+  { "name": "商品D", "price": 300, "stock": 6,  "sold": 0 },
+  { "name": "商品E", "price": 250, "stock": 12, "sold": 0 },
+  { "name": "商品F", "price": 180, "stock": 4,  "sold": 0 },
+  { "name": "商品G", "price": 220, "stock": 7,  "sold": 0 },
+  { "name": "商品H", "price": 190, "stock": 9,  "sold": 0 }
+]
