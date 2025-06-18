@@ -83,14 +83,14 @@ app.get('/', requireLogin, (req, res) => {
 });
 
 
-//inventory
-app.get('/inventory',(req,res) => {
-res.render('inventory');
+// ログイン後にアクセスできるページ例
+app.get('/inventory', requireLogin, (req, res) => {
+  res.render('inventory', { user: req.session.user });
 });
 
 //売り上げ管理ページ
-app.get('/sales-home', (req, res) => {
-  res.render('sales-home', { items }); 
+app.get('/sales-home', requireLogin, (req, res) => {
+  res.render('sales-home', { items, user: req.session.user, title: "売上管理" });
 });
 
 //sell時の動作

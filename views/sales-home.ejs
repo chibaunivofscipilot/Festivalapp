@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>売上・在庫管理</title>
- <style>
+  <style>
     table, th, td {
       border: 1px solid black;
       border-collapse: collapse;
@@ -11,26 +11,55 @@
     th {
       background-color: #ddd;
     }
+    .button-container {
+      margin-bottom: 20px;
+    }
+    .blue-button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .blue-button:hover {
+      background-color: #0056b3;
+    }
+    .red-button {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .red-button:hover {
+      background-color: #a71d2a;
+    }
   </style>
 </head>
 <body>
-  <h1>メインページ</h1>
-<form action="/sell" method="POST">
-  <input type="hidden" name="index" value="0">  <!-- 商品A -->
-  <button type="submit">商品Aを売る</button>
-</form>
+  <h1>売上管理</h1>
 
-<form action="/delete-sale" method="POST">
-  <input type="hidden" name="index" value="0">  <!-- 商品A -->
-  <button type="submit">商品A 取り消し</button>
-</form>
+  <div class="button-container">
+  <% items.forEach((item, index) => { %>
+    <div style="margin-bottom: 10px;">
+      <form action="/sell" method="POST" style="display:inline;">
+        <input type="hidden" name="index" value="<%= index %>">
+        <button type="submit" class="blue-button"><%= item.name %> 売る</button>
+      </form>
 
-<form action="/sell" method="POST">
-  <input type="hidden" name="index" value="1">  <!-- 商品B -->
-  <button type="submit">商品Bを売る</button>
-</form>
-<h1>売上一覧</h1>
+      <form action="/delete-sale" method="POST" style="display:inline;" onsubmit="return confirmCancel(this);">
+        <input type="hidden" name="index" value="<%= index %>">
+        <button type="submit" class="red-button"><%= item.name %> 取り消し</button>
+      </form>
+    </div>
+  <% }) %>
+</div>
 
+  <h2>売上一覧</h2>
   <table>
     <thead>
       <tr>
@@ -53,6 +82,15 @@
       <% }) %>
     </tbody>
   </table>
+  <audio id="alert-sound" src="/sounds/warning.mp3" preload="auto"></audio>
 
+  <script>
+    function confirmCancel(form) {
+      const audio = document.getElementById('alert-sound');
+      audio.play(); // 警告音を再生
+
+      return confirm('本当に取り消しますか？');
+    }
+  </script>
 </body>
 </html>
