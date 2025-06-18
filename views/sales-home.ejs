@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>売上・在庫管理</title>
+ <style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 8px;
+    }
+    th {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>メインページ</h1>
+<form action="/sell" method="POST">
+  <input type="hidden" name="index" value="0">  <!-- 商品A -->
+  <button type="submit">商品Aを売る</button>
+</form>
+
+<form action="/delete-sale" method="POST">
+  <input type="hidden" name="index" value="0">  <!-- 商品A -->
+  <button type="submit">商品A 取り消し</button>
+</form>
+
+<form action="/sell" method="POST">
+  <input type="hidden" name="index" value="1">  <!-- 商品B -->
+  <button type="submit">商品Bを売る</button>
+</form>
+<h1>売上一覧</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>商品名</th>
+        <th>価格</th>
+        <th>在庫</th>
+        <th>売れた数</th>
+        <th>売上金額</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% items.forEach(item => { %>
+        <tr>
+          <td><%= item.name %></td>
+          <td><%= item.price %> 円</td>
+          <td><%= item.stock %></td>
+          <td><%= item.sold %></td>
+          <td><%= item.price * item.sold %> 円</td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+</body>
+</html>

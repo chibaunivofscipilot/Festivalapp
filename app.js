@@ -6,6 +6,22 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
+//データベース読み込み関数
+let items = [];
+
+function loadData() {
+  const data = fs.readFileSync('Datebase.json', 'utf8');
+  items = JSON.parse(data);
+}
+//データベースの書き出し関数
+function saveData() {
+  fs.writeFileSync('Datebase.json', JSON.stringify(items, null, 2));
+}
+
+//データベースの読み込み
+loadData();
+
+
 // ミドルウェア設定
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -24,6 +40,11 @@ app.get('/inventory',(req,res) => {
 res.render('inventory');
 });
 
+//売り上げ管理ページ
+app.get('/sales-home', (req, res) => {
+  res.render('sales-home', { items }); 
+});
+
 //sell時の動作
 app.post('/sell', (req, res) => {
   const index = parseInt(req.body.index);
@@ -32,7 +53,7 @@ app.post('/sell', (req, res) => {
     items[index].sold += 1;
     saveData(); // ← ここで保存
   }
-  res.redirect('/sales');
+  res.redirect('/sales-home');
 });
 //取り消し動作(警告音を足すべき)
 app.post('/delete-sale', (req, res) => {
@@ -42,7 +63,7 @@ app.post('/delete-sale', (req, res) => {
     items[index].sold -= 1;
     saveData(); // ← 忘れずに保存
   }
-  res.redirect('/sales');
+  res.redirect('/sales-home');
 });
 
 // サーバー起動

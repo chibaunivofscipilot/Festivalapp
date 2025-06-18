@@ -1,0 +1,20 @@
+# node_modules は絶対に無視（容量が大きく、再インストール可能）
+node_modules/
+
+# 環境変数などの機密情報
+.env
+
+# OSごとの一時ファイル
+.DS_Store
+Thumbs.db
+
+# ログファイル
+*.log
+
+# 編集エディタが作る一時ファイル
+*.swp
+*.swo
+
+# npmのデバッグ出力
+npm-debug.log*
+
