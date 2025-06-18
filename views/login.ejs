@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ログイン</title>
+</head>
+<body>
+  <h1>ログイン</h1>
+  <% if (error) { %>
+    <p style="color: red;"><%= error %></p>
+  <% } %>
+  <form action="/login" method="POST">
+    <label>ユーザー名: <input type="text" name="username"></label><br>
+    <label>パスワード: <input type="password" name="password"></label><br>
+    <button type="submit">ログイン</button>
+  </form>
+</body>
+</html>
