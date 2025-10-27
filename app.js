@@ -214,6 +214,23 @@ app.get("/notification", (req, res) => {
 
   res.render("notification", { logs });
 });
+app.get('/notification-data', requireLogin, (req, res) => {
+  const logPath = path.join(__dirname, 'operation.log');
+  let logs = [];
+  if (fs.existsSync(logPath)) {
+    const content = fs.readFileSync(logPath, 'utf8').trim();
+    logs = content.split('\n').map(line => {
+      const match = line.match(/^\[(.+?)\] \[ユーザー: (.+?)\] (.+)$/);
+      if (match) {
+        const [, time, user, message] = match;
+        return { time, user, message };
+      } else {
+        return { time: '', user: '', message: line };
+      }
+    });
+  }
+  res.json(logs);
+});
 
 // サーバー起動
 server.listen(PORT, () => {

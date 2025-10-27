@@ -29,5 +29,20 @@
       <% }) %>
     </tbody>
   </table>
+  <script>
+  setInterval(() => {
+    fetch('/notification-data')
+      .then(res => res.json())
+      .then(logs => {
+        const tbody = document.querySelector('tbody');
+        tbody.innerHTML = '';
+        logs.forEach(log => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${log.time}</td><td>${log.user}</td><td>${log.message}</td>`;
+          tbody.appendChild(tr);
+        });
+      });
+  }, 2000);
+</script>
 </body>
 </html>
