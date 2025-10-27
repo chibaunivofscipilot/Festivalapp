@@ -3,7 +3,11 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const fs = require('fs');
+const http = require('http');
+const socketIO = require('socket.io');
 const app = express();
+const server = http.createServer(app); // ← appをhttpサーバー化
+const io = socketIO(server);           // ← Socket.IOを紐づけ
 const PORT = 3000;
 
 // writeLog関数定義（ログファイルに操作記録を書き込む）
@@ -155,7 +159,63 @@ app.post('/inventory/update', requireLogin, (req, res) => {
   res.redirect('/inventory');
 });
 
+// ===== Socket.IO設定 =====
+const logPath = path.join(__dirname, 'operation.log');
+let lastNotifySize = 0;
+
+io.on("connection", (socket) => {
+  console.log("通知ページにクライアントが接続しました");
+  socket.on("disconnect", () => console.log("クライアントが切断しました"));
+});
+
+// operation.log の更新監視
+fs.watchFile(logPath, (curr, prev) => {
+  const newSize = curr.size;
+  if (newSize > lastNotifySize) {   // ← ここを lastNotifySize に
+    const stream = fs.createReadStream(logPath, {
+      start: lastNotifySize,        // ← ここも lastNotifySize
+      end: newSize,
+      encoding: "utf8"
+    });
+
+    let newContent = "";
+    stream.on("data", chunk => {
+      newContent += chunk;
+    });
+
+    stream.on("end", () => {
+      io.emit("newLog", { message: newContent.trim() });
+    });
+
+    lastNotifySize = newSize;       // ← 更新も lastNotifySize
+  }
+});
+
+//通知
+app.get("/notification", (req, res) => {
+  const logPath = path.join(__dirname, "operation.log");
+
+  // logs を初期化
+  let logs = [];
+
+  if (fs.existsSync(logPath)) {
+    const content = fs.readFileSync(logPath, "utf8").trim();
+
+    logs = content.split("\n").map(line => {
+      const match = line.match(/^\[(.+?)\] \[ユーザー: (.+?)\] (.+)$/);
+      if (match) {
+        const [, time, user, message] = match;
+        return { time, user, message };
+      } else {
+        return { time: "", user: "", message: line };
+      }
+    });
+  }
+
+  res.render("notification", { logs });
+});
+
 // サーバー起動
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`http://localhost:${PORT} で起動中`);
 });

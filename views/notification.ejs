@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ログ表示</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>操作ログ</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>時間</th>
+        <th>ユーザー</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% logs.forEach(log => { %>
+        <tr>
+          <td><%= log.time %></td>
+          <td><%= log.user %></td>
+          <td><%= log.message %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</body>
+</html>

@@ -2,14 +2,14 @@
   {
     "name": "商品A",
     "price": 100,
-    "stock": 13,
-    "sold": 10
+    "stock": 0,
+    "sold": 21
   },
   {
     "name": "商品B",
     "price": 200,
     "stock": 0,
-    "sold": 5
+    "sold": 8
   },
   {
     "name": "商品C",
