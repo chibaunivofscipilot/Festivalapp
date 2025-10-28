@@ -26,8 +26,8 @@
   {
     "name": "商品E",
     "price": 250,
-    "stock": 11,
-    "sold": 1
+    "stock": 10,
+    "sold": 2
   },
   {
     "name": "商品F",
