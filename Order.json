@@ -1,0 +1,63 @@
+[
+  {
+    "name": "商品A",
+    "price": 180,
+    "Order": 3
+  },
+  {
+    "name": "商品B",
+    "price": 200,
+    "Order": 8
+  },
+  {
+    "name": "商品C",
+    "price": 150,
+    "Order": 6
+  },
+  {
+    "name": "商品D",
+    "price": 300,
+    "Order": 0
+  },
+  {
+    "name": "商品E",
+    "price": 250,
+    "Order": 10
+  },
+  {
+    "name": "商品F",
+    "price": 180,
+    "Order": 0
+  },
+  {
+    "name": "商品G",
+    "price": 220,
+    "Order": 7
+  },
+  {
+    "name": "商品H",
+    "price": 190,
+    "Order": 9
+  },
+  {
+    "id": 9,
+    "product": "商品C",
+    "price": 150,
+    "soldBy": "r25t015",
+    "date": "2025/10/30 14:04:19"
+  },
+  {
+    "id": 10,
+    "product": "商品C",
+    "price": 150,
+    "soldBy": "r25t015",
+    "date": "2025/10/30 14:04:22"
+  },
+  {
+    "id": 11,
+    "product": "商品A",
+    "price": 100,
+    "soldBy": "r25t015",
+    "date": "2025/10/30 14:05:43"
+  }
+]

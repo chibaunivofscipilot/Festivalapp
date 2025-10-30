@@ -10,7 +10,19 @@
   </style>
 </head>
 <body>
-  <h1>操作ログ</h1>
+  <h1>注文状況</h1>
+  <div class="button-container">
+  <% items.forEach((item, index) => { %>
+    <div style="margin-bottom: 10px;">
+      <form action="/complete" method="POST" style="display:inline;">
+        <input type="hidden" name="index" value="<%= index %>">
+        <button type="submit" class="blue-button"><%= item.name %> 焼けた</button>
+      </form>
+    </div>
+  <% }) %>
+</div>
+
+  <h2>操作ログ</h2>
   <table>
     <thead>
       <tr>

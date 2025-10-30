@@ -42,18 +42,28 @@ function requireLogin(req, res, next) {
   }
 }
 
-// データベース読み込み関数
+
+// ===== Database.json（商品データ） =====
 let items = [];
 function loadData() {
-  const data = fs.readFileSync('Datebase.json', 'utf8');
+  const data = fs.readFileSync('Database.json', 'utf8');
   items = JSON.parse(data);
 }
-// データベース書き出し関数
 function saveData() {
-  fs.writeFileSync('Datebase.json', JSON.stringify(items, null, 2));
+  fs.writeFileSync('Database.json', JSON.stringify(items, null, 2));
 }
-// 初回ロード
 loadData();
+
+// ===== Order.json（注文データ） =====
+let order = [];
+function loadOrder() {
+  const data = fs.readFileSync('Order.json', 'utf8');
+  order = JSON.parse(data);
+}
+function saveOrder() {
+  fs.writeFileSync('Order.json', JSON.stringify(order, null, 2));
+}
+loadOrder();
 
 // --- ルーティング ---
 // ログインページ
@@ -96,22 +106,55 @@ app.get('/sales-home', requireLogin, (req, res) => {
   res.render('sales-home', { items, user: req.session.user, title: "売上管理" });
 });
 
-// 売る処理（ログイン必須、ログも書き込み）
+
 app.post('/sell', requireLogin, (req, res) => {
   const index = parseInt(req.body.index);
   const user = req.session.user || { username: '不明なユーザー' };
 
-  if (index >= 0 && index < items.length) {
-    if (items[index].stock > 0) {
-      items[index].stock--;
-      items[index].sold++;
-      saveData();
-
-      writeLog(user, `販売: 商品「${items[index].name}」が1つ売れました。残在庫: ${items[index].stock}`);
-    } else {
-      writeLog(user, `販売失敗: 商品「${items[index].name}」の在庫がありません。`);
-    }
+  // --- 入力チェック ---
+  if (index < 0 || index >= items.length) {
+    writeLog(user, `販売失敗: 無効な商品インデックス (${index})`);
+    return res.redirect('/sales-home');
   }
+
+  const item = items[index];
+
+  // --- 在庫チェック ---
+  if (item.stock <= 0) {
+    writeLog(user, `販売失敗: 商品「${item.name}」の在庫がありません`);
+    return res.redirect('/sales-home');
+  }
+
+  // --- ① Datebase.jsonを更新 ---
+  item.stock--;
+  item.sold++;
+  saveData(); // ← Datebase.json保存
+
+  // --- ② Order.jsonを更新（Orderを1減らす）---
+  try {
+    const orderData = JSON.parse(fs.readFileSync('Order.json', 'utf8'));
+
+    // 同じ商品名を探す
+    const target = orderData.find(p => p.name === item.name);
+
+    if (target) {
+      if (target.Order >= 0) {
+        target.Order++;
+        fs.writeFileSync('Order.json', JSON.stringify(orderData, null, 2));
+        writeLog(user, `販売成功: ${item.name} の注文数を1減らしました（残り ${target.Order}）`);
+      } else {
+        writeLog(user, `販売成功: ${item.name} は販売されたが、注文数は既に0`);
+      }
+    } else {
+      writeLog(user, `販売成功: ${item.name} は販売されたが、Order.jsonに該当商品が存在しません`);
+    }
+
+  } catch (err) {
+    console.error('Order.json書き込みエラー:', err);
+    writeLog(user, `販売: 商品「${item.name}」は売れたが、Order.json更新に失敗`);
+  }
+
+  // --- 完了後、ホームへ戻る ---
   res.redirect('/sales-home');
 });
 
@@ -133,6 +176,7 @@ app.post('/delete-sale', requireLogin, (req, res) => {
   }
   res.redirect('/sales-home');
 });
+
 
 // 在庫編集ページ表示
 app.get('/inventory', requireLogin, (req, res) => {
@@ -171,9 +215,9 @@ io.on("connection", (socket) => {
 // operation.log の更新監視
 fs.watchFile(logPath, (curr, prev) => {
   const newSize = curr.size;
-  if (newSize > lastNotifySize) {   // ← ここを lastNotifySize に
+  if (newSize > lastNotifySize) {
     const stream = fs.createReadStream(logPath, {
-      start: lastNotifySize,        // ← ここも lastNotifySize
+      start: lastNotifySize,
       end: newSize,
       encoding: "utf8"
     });
@@ -184,23 +228,29 @@ fs.watchFile(logPath, (curr, prev) => {
     });
 
     stream.on("end", () => {
-      io.emit("newLog", { message: newContent.trim() });
+      // 改行ごとに分割して配信
+      const newLines = newContent.trim().split("\n").filter(l => l.length > 0);
+      newLines.forEach(line => {
+        const match = line.match(/^\[(.+?)\] \[ユーザー: (.+?)\] (.+)$/);
+        if (match) {
+          const [, time, user, message] = match;
+          io.emit("newLog", { time, user, message });
+        } else {
+          io.emit("newLog", { time: "", user: "", message: line });
+        }
+      });
     });
 
-    lastNotifySize = newSize;       // ← 更新も lastNotifySize
+    lastNotifySize = newSize;
   }
 });
 
-//通知
+
+// ===== /notification（GET：画面表示）=====
 app.get("/notification", (req, res) => {
-  const logPath = path.join(__dirname, "operation.log");
-
-  // logs を初期化
   let logs = [];
-
   if (fs.existsSync(logPath)) {
     const content = fs.readFileSync(logPath, "utf8").trim();
-
     logs = content.split("\n").map(line => {
       const match = line.match(/^\[(.+?)\] \[ユーザー: (.+?)\] (.+)$/);
       if (match) {
@@ -211,25 +261,46 @@ app.get("/notification", (req, res) => {
       }
     });
   }
-
-  res.render("notification", { logs });
+  res.render("notification", { items, order, logs });
 });
-app.get('/notification-data', requireLogin, (req, res) => {
-  const logPath = path.join(__dirname, 'operation.log');
-  let logs = [];
-  if (fs.existsSync(logPath)) {
-    const content = fs.readFileSync(logPath, 'utf8').trim();
-    logs = content.split('\n').map(line => {
-      const match = line.match(/^\[(.+?)\] \[ユーザー: (.+?)\] (.+)$/);
-      if (match) {
-        const [, time, user, message] = match;
-        return { time, user, message };
-      } else {
-        return { time: '', user: '', message: line };
-      }
-    });
+
+
+// ===== /notification（POST：販売操作）=====
+app.post("/notification", (req, res) => {
+  const index = parseInt(req.body.index);
+  const user = req.session.user || { username: '不明なユーザー' };
+
+  if (index >= 0 && index < items.length) {
+    if (items[index].stock > 0) {
+      items[index].stock--;
+      items[index].sold++;
+      saveData();
+
+      writeLog(user, `販売: 商品「${items[index].name}」が1つ売れました。残在庫: ${items[index].stock}`);
+    } else {
+      writeLog(user, `販売失敗: 商品「${items[index].name}」の在庫がありません。`);
+    }
   }
-  res.json(logs);
+
+  // ページ再読み込みではなく、Socket.IOで即座に反映される
+  res.redirect("/notification");
+});
+
+// ===== 焼き上がり処理 =====
+app.post('/complete', requireLogin, (req, res) => {
+  const index = parseInt(req.body.index);
+  const user = req.session.user || { username: '不明なユーザー' };
+
+  if (index >= 0 && index < order.length) {
+    if (order[index].Order > 0) {
+      order[index].Order--;
+      saveOrder();
+      writeLog(user, `焼き上がり: 商品「${order[index].name}」が完成しました。残り注文: ${order[index].order}`);
+    } else {
+      writeLog(user, `焼き上がり失敗: 商品「${order[index].name}」の注文がありません。`);
+    }
+  }
+  res.redirect('/notification');
 });
 
 // サーバー起動
